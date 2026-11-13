@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Writer</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    padding: 24px; background: #0b1020; color: #e8ecf7;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  }
+  .app {
+    width: min(760px, 100%); padding: 28px; border: 1px solid #293452;
+    border-radius: 22px; background: #121a2e; box-shadow: 0 20px 60px #0006;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 38px); }
+  .sub { margin: 0 0 24px; color: #aab5cf; }
+  label { display: block; margin: 18px 0 8px; font-weight: 650; }
+  textarea {
+    width: 100%; min-height: 115px; resize: vertical; padding: 14px;
+    color: #e8ecf7; background: #0b1224; border: 1px solid #354365;
+    border-radius: 12px; font: 15px/1.6 ui-monospace, SFMono-Regular, monospace;
+    outline: none;
+  }
+  textarea:focus { border-color: #8ba7ff; box-shadow: 0 0 0 3px #8ba7ff22; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  button {
+    border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer;
+    color: #0b1020; background: #a9bcff; font-weight: 700;
+  }
+  button.secondary { color: #e8ecf7; background: #293653; }
+  button:hover { filter: brightness(1.08); }
+  .hint { color: #9eabc7; font-size: 13px; margin: 8px 0 0; }
+  #status { min-height: 22px; margin-top: 10px; color: #ffbd8a; font-size: 14px; }
+  .result { overflow-wrap: anywhere; }
+  .footer { margin-top: 22px; color: #8290ae; font-size: 12px; }
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>Binary Writer</h1>
+  <p class="sub">Tulis pesan dengan kode biner ASCII 8-bit, lalu ubah menjadi teks biasa.</p>
+
+  <label for="binary">Masukkan kode biner</label>
+  <textarea id="binary" spellcheck="false" placeholder="Contoh: 01011001 01010101 01001000 01000001"></textarea>
+  <p class="hint">Gunakan 8 digit 0/1 untuk setiap karakter. Pisahkan tiap kelompok dengan spasi.</p>
+  <div class="row">
+    <button id="decode">Ubah ke teks</button>
+    <button class="secondary" id="clear">Hapus</button>
+  </div>
+  <div id="status" role="status"></div>
+
+  <label for="plain">Hasil teks</label>
+  <textarea id="plain" placeholder="Hasil tulisanmu akan muncul di sini..." spellcheck="false"></textarea>
+  <div class="row">
+    <button id="encode">Ubah teks ke biner</button>
+    <button class="secondary" id="copy">Salin biner</button>
+  </div>
+  <p class="hint">Ketik teks biasa di kotak hasil, lalu tekan “Ubah teks ke biner” untuk mendapatkan kodenya.</p>
+
+  <div class="footer">Mendukung huruf, angka, spasi, dan tanda baca dasar melalui UTF-8.</div>
+</main>
+<script>
+const binary = document.getElementById('binary');
+const plain = document.getElementById('plain');
+const status = document.getElementById('status');
+
+function encodeText(text) {
+  return Array.from(new TextEncoder().encode(text))
+    .map(byte => byte.toString(2).padStart(8, '0')).join(' ');
+}
+function decodeBinary(value) {
+  const cleaned = value.trim();
+  if (!cleaned) return '';
+  const groups = cleaned.split(/\s+/);
+  if (groups.some(group => !/^[01]{8}$/.test(group))) {
+    throw new Error('Format salah. Setiap kelompok harus terdiri dari tepat 8 angka 0 atau 1.');
+  }
+  const bytes = new Uint8Array(groups.map(group => parseInt(group, 2)));
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+}
+
+document.getElementById('decode').addEventListener('click', () => {
+  try {
+    plain.value = decodeBinary(binary.value);
+    status.textContent = 'Berhasil diubah menjadi teks.';
+    status.style.color = '#9ee6b0';
+  } catch (error) {
+    status.textContent = error.message || 'Kode biner tidak valid.';
+    status.style.color = '#ffbd8a';
+  }
+});
+document.getElementById('encode').addEventListener('click', () => {
+  binary.value = encodeText(plain.value);
+  status.textContent = 'Teks berhasil diubah menjadi kode biner.';
+  status.style.color = '#9ee6b0';
+});
+document.getElementById('clear').addEventListener('click', () => {
+  binary.value = ''; plain.value = ''; status.textContent = '';
+});
+document.getElementById('copy').addEventListener('click', async () => {
+  if (!binary.value) { status.textContent = 'Belum ada kode biner untuk disalin.'; return; }
+  try {
+    await navigator.clipboard.writeText(binary.value);
+    status.textContent = 'Kode biner berhasil disalin.';
+    status.style.color = '#9ee6b0';
+  } catch {
+    status.textContent = 'Tidak bisa menyalin otomatis. Pilih dan salin kode secara manual.';
+    status.style.color = '#ffbd8a';
+  }
+});
+</script>
+</body>
+</html>
